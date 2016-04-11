@@ -135,29 +135,42 @@ export default class NavBar extends React.Component {
     }
 
     _renderTitle(childState: NavigationState, index:number) {
-        return (
-            <Animated.Text
+        let title = this.props.getTitle ? this.props.getTitle(childState) : childState.title;
+        let prevState = this.props.navigationState.children[index-1];
+        if (prevState && prevState.hideNavBar)
+        {
+            return (<Text
                 key={childState.key}
                 style={[
-          styles.title, this.props.navigationState.titleStyle, childState.titleStyle,
-          {
-            opacity: this.props.position.interpolate({
-              inputRange: [index - 1, index, index + 1],
-              outputRange: [0, 1, 0],
-            }),
-            left: this.props.position.interpolate({
-              inputRange: [index - 1, index + 1],
-              outputRange: [200, -200],
-            }),
-            right: this.props.position.interpolate({
-              inputRange: [index - 1, index + 1],
-              outputRange: [-200, 200],
-            }),
-          },
-        ]}>
-                {this.props.getTitle ? this.props.getTitle(childState) : childState.title }
-            </Animated.Text>
-        );
+                  styles.title, this.props.navigationState.titleStyle, childState.titleStyle]}
+                >
+                  {title}
+            </Text>);
+        } else {
+            return (
+                <Animated.Text
+                    key={childState.key}
+                    style={[
+              styles.title, this.props.navigationState.titleStyle, childState.titleStyle,
+              {
+                opacity: this.props.position.interpolate({
+                  inputRange: [index - 1, index, index + 1],
+                  outputRange: [0, 1, 0],
+                }),
+                left: this.props.position.interpolate({
+                  inputRange: [index - 1, index + 1],
+                  outputRange: [200, -200],
+                }),
+                right: this.props.position.interpolate({
+                  inputRange: [index - 1, index + 1],
+                  outputRange: [-200, 200],
+                }),
+              },
+            ]}>
+                    {title}
+                </Animated.Text>
+            );
+        }
     }
 
 }
