@@ -49,8 +49,8 @@ class App extends React.Component {
     }
 }
 ```
-Alternatively you could define all your scenes during compile time and use it later within Router:
-```
+Alternatively you could define all your scenes during compile time and use it later within `Router`:
+```javascript
 const scenes = Actions.create(
             <Scene key="root">
                 <Scene key="login" component={Login} title="Login"/>
@@ -67,21 +67,21 @@ class App extends React.Component {
 ```
 
 2. In any app screen:
-    * import {Actions} from 'react-native-router-flux'
-    * Actions.ACTION_NAME(PARAMS) will call the appropriate action and params will be passed to the scene.
-    * Actions.pop() will pop the current screen.
-    * Actions.refresh(PARAMS) will update the properties of the current screen.
+    * `import {Actions} from 'react-native-router-flux'`
+    * `Actions.ACTION_NAME(PARAMS)` will call the appropriate action and params will be passed to the scene.
+    * `Actions.pop()` will pop the current screen.
+    * `Actions.refresh(PARAMS)` will update the properties of the current screen.
 
 ## Available imports
-- Router
-- Scene
-- Modal
-- TabBar
-- getInitialState
-- Reducer
-- DefaultRenderer
-- Switch
-- Actions
+- `Router`
+- `Scene`
+- `Modal`
+- `TabBar`
+- `getInitialState`
+- `Reducer`
+- `DefaultRenderer`
+- `Switch`
+- `Actions`
 
 ## Configuration
 
@@ -93,6 +93,7 @@ class App extends React.Component {
 | other props | | | all properties that will be passed to all your scenes |
 | children | | required (if no scenes property passed)| Scene root element |
 | scenes | object | optional | scenes for Router created with Actions.create. This will allow to create all actions BEFORE React processing. If you don't need it you may pass Scene root element as children |
+| getSceneStyle | function | optional | Optionally override the styles for NavigationCard's Animated.View rendering the scene. |
 ##### Scene:
 
 | Property | Type | Default | Description |
@@ -118,6 +119,8 @@ class App extends React.Component {
 | backTitle | string | | optional string to display with back button |
 | backButtonTextStyle | Text style | | optional style override for the back title element |
 | renderBackButton | Closure | | optional closure to render back text or button if this route happens to be the previous route |
+| leftButtonImage | Image |  | Image for left button |
+| leftButtonIconStyle | View style |  | Image style for left button |
 | leftButtonStyle | View style | | optional style override for the container of left title / buttons |
 | leftButtonTextStyle | Text style | | optional style override for the left title element |
 | onLeft | Closure | | function will be called when left navBar button is pressed |
@@ -126,11 +129,14 @@ class App extends React.Component {
 | renderRightButton | Closure | | optional closure to render the right title / buttons element |
 | rightButtonStyle | View style | | optional style override for the container of right title / buttons |
 | rightButtonTextStyle | Text style | | optional style override for the right title element |
+| rightButtonImage | Image |  | Image for right button |
+| rightButtonIconStyle | View style |  | Image style for right button |
 | clone | bool | | Scenes marked with `clone` will be treated as templates and cloned into the current scene's parent when pushed. See example. |
 | tabBarStyle | View style |  | optional style override for the Tabs component |
 | sceneStyle | View style | { flex: 1 } | optional style override for the Scene's component |
 | other props | | | all properties that will be passed to your component instance |
-
+| getSceneStyle | function | optional | Optionally override the styles for NavigationCard's Animated.View rendering the scene. |
+| renderTitle | function | optional | Optionally closure to render the title
 ## Example
 ![launch](https://cloud.githubusercontent.com/assets/1321329/11692367/7337cfe2-9e9f-11e5-8515-e8b7a9f230ec.gif)
 
@@ -174,7 +180,7 @@ export default class Example extends React.Component {
                         <Scene key="loginModal" component={Login} schema="modal" title="Login"/>
                         <Scene key="loginModal2" hideNavBar={true} component={Login2} title="Login2"/>
                     </Scene>
-                    <Scene key="tabbar" tabs={true} default="tab2" >
+                    <Scene key="tabbar" tabs={true} >
                         <Scene key="tab1"  title="Tab #1" icon={TabIcon} navigationBarStyle={{backgroundColor:'red'}} titleStyle={{color:'white'}}>
                             <Scene key="tab1_1" component={TabView} title="Tab #1_1" onRight={()=>alert("Right button")} rightTitle="Right" />
                             <Scene key="tab1_2" component={TabView} title="Tab #1_2" titleStyle={{color:'black'}}/>
@@ -235,22 +241,124 @@ To display a modal use `Modal` as root renderer, so it will render the first ele
 
 ## Redux/Flux
 This component doesn't depend on any redux/flux library. It uses new React Native Navigation API and provide own reducer for its navigation state.
-You may provide your own reducer if needed. To avoid the creation of initial state, you may pass a reducer creator. Example to print all actions:
+You may provide your own reducer if needed. To avoid the creation of initial state, you may pass a reducer creator.
+Also all actions will pass themselves to Redux dispatch method if it is passed (i.e. if Router is `connect`ed with Redux)
+
+The following example will dispatch the `focus` action when a new scene comes into focus. The current scene will be available to components via the `props.scene` property.
+
+##### Step 1
+
+First create a reducer for the routing actions that will be dispatched by RNRF.
+
 ```javascript
-// remember to add the 'Reducer' to your imports along with Router, Scene, ... like so
-// import { Reducer } from 'react-native-router-flux'
-const reducerCreate = params=>{
-    const defaultReducer = Reducer(params);
-    return (state, action)=>{
-        console.log("ACTION:", action);
-        return defaultReducer(state, action);
-    }
+// reducers/routes.js
+
+const initialState = {
+  scene: {},
 };
 
-// within  your App render() method
-return <Router scenes={scenes} createReducer={reducerCreate} />;
+export default function reducer(state = initialState, action = {}) {
+  switch (action.type) {
+    // focus action is dispatched when a new screen comes into focus
+    case "focus":
+      return {
+        ...state,
+        scene: action.scene,
+      };
+
+    // ...other actions
+
+    default:
+      return state;
+  }
+}
+```
+
+##### Step 2
+
+Combine this reducer with the rest of the reducers from your app.
+
+```javascript
+// reducers/index.js
+
+import { combineReducers } from 'redux';
+import routes from './routes';
+// ... other reducers
+
+export default combineReducers({
+  routes,
+  // ... other reducers
+});
 
 ```
+
+##### Step 3
+
+Create your store, wrap your routes with the redux `Provider` component and connect your Router
+
+
+```js
+// app.js
+
+import { Router } from 'react-native-router-flux';
+import { Provider } from 'react-redux';
+import { createStore, applyMiddleware, compose } from 'redux';
+import { connect } from 'react-redux';
+
+const RouterWithRedux = connect()(Router);
+import reducers from './reducers';
+// other imports...
+
+// create store...
+const middleware = [/* ...your middleware (i.e. thunk) */];
+const store = compose(
+  applyMiddleware(...middleware)
+)(createStore)(reducers);
+
+
+class App extends React.Component {
+  render () {
+    return (
+      <Provider store={store}>
+        <RouterWithRedux>
+            // your scenes here
+        </RouterWithRedux>
+      </Provider>
+    );
+  }
+}
+
+export default App;
+```
+
+##### Step 4
+
+Now you can access the current scene from any connected component.
+
+```js
+// components/MyComponent.js
+import React, { PropTypes, Text } from 'react-native';
+import { connect } from 'react-redux';
+
+class MyComponent extends React.Component {
+  static propTypes = {
+    routes: PropTypes.object,
+  };
+
+  render () {
+    return (
+      <Text>
+        The current scene is titled {this.props.routes.scene.title}.
+      </Text>
+    );
+  }
+}
+
+export default connect(({routes}) => ({routes}))(MyComponent);
+```
+
+## Tabbar
+Every tab has its own navigation bar. However, if you do not set its parent `<Scene tabs={true} />` with `hideNavBar={true}`, the tabs' navigation bar will be overrided by their parient.
 
 ## Custom nav bar for individual scene or even different state of scene (new feature):
 Your scene `component` class could implement _static_ renderNavigationBar(props) method that could return different navbar depending from component props
@@ -259,12 +367,32 @@ Your scene `component` class could implement _static_ renderNavigationBar(props)
 New feature for 3.x release is custom scene renderer that should be used together with tabs={true} property. It allows to select `tab` scene to show depending from app state.
 It could be useful for authentication, restricted scenes, etc. Usually you should wrap `Switch` with redux `connect` to pass application state to it:
 Following example chooses scene depending from sessionID using Redux:
+```javascript
+<Scene key="root" component={connect(state=>({profile:state.profile}))(Switch)} tabs={true}
+       selector={props=>props.profile.sessionID ? "main" : "signUp"}>
+    <Scene key="signUp" component={SignUp}/>
+    <Scene key="main" component={Main}>
+</Scene>
 ```
-        <Scene key="root" component={connect(state=>({profile:state.profile}))(Switch)} tabs={true}
-               selector={props=>props.profile.sessionID ? "main" : "signUp"}>
-            <Scene key="signUp" component={SignUp}/>
-            <Scene key="main" component={Main}>
-        </Scene>
+
+## Split your scenes to smaller parts if needed
+Scenes concept is similar to iOS storyboard where you describe all your app screens in one place. However for some large apps, you may want to split it, like iOS app could have several iOS storyboards for different areas of the app. 
+Luckily, you could easy split Scenes using NodeJS built-in require calls:
+```
+            <Router>
+                    {require("./scenesForTabBar")}
+                    {require("./scenesForAnotherPart")}
+            </Router>
+```
+
+scenesForTabBar.js:
+```
+import React from 'react-native';
+import {Scene} from 'react-native-router-flux';
+
+module.exports = <Scene key="tabbar" tabs={true}>
+   // scenes here
+</Scene>;
 ```
 
 ## Drawer (side menu) integration
@@ -305,6 +433,8 @@ export default class extends Component {
             </Scene>
 
 ```
+## Production Apps using react-native-router-flux
++ GuavaPass.com ([iOS](https://itunes.apple.com/en/app/guavapass-one-pass-fitness/id1050491044?l=en&mt=8), Android) - offers convenient access to top classes at boutique fitness studios across Asia.
 
 ## Support
 Thanks to all who submitted PRs to 2.x release. If you like the component and want to support it, feel free to donate any amount or help with issues.

@@ -6,18 +6,16 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-import React, {Component, Animated, StyleSheet, ScrollView, View, Text, NavigationExperimental} from "react-native";
+import React, {Component, Animated, PropTypes, StyleSheet, View, NavigationExperimental} from "react-native";
 const {
     AnimatedView: NavigationAnimatedView,
     Card: NavigationCard,
     RootContainer: NavigationRootContainer,
     Header: NavigationHeader,
     } = NavigationExperimental;
-import Actions from "./Actions";
-import getInitialState from "./State";
-import Reducer from "./Reducer";
 import TabBar from "./TabBar";
 import NavBar from "./NavBar";
+import Actions from './Actions';
 
 export default class DefaultRenderer extends Component {
     constructor(props) {
@@ -25,6 +23,34 @@ export default class DefaultRenderer extends Component {
         this._renderCard = this._renderCard.bind(this);
         this._renderScene = this._renderScene.bind(this);
         this._renderHeader = this._renderHeader.bind(this);
+    }
+
+    static childContextTypes = {
+        navigationState: PropTypes.any,
+    };
+
+    componentDidMount() {
+        this.dispatchFocusAction(this.props);
+    }
+
+    componentWillReceiveProps(nextProps) {
+        if (nextProps.navigationState !== this.props.navigationState) {
+          this.dispatchFocusAction(nextProps);
+        }
+    }
+
+    dispatchFocusAction({navigationState}) {
+        if (!navigationState || navigationState.component || navigationState.tabs) {
+            return;
+        }
+        const scene = navigationState.children[navigationState.index];
+        Actions.focus({scene});
+    }
+
+    getChildContext() {
+        return {
+            navigationState: this.props.navigationState,
+        };
     }
 
     render() {
@@ -77,21 +103,30 @@ export default class DefaultRenderer extends Component {
     }
 
     _renderHeader(/*NavigationSceneRendererProps*/ props) {
-        return <NavBar
-                {...props}
-                getTitle={state => state.title}
-            />;
+        const state = props.navigationState;
+        const child = state.children[state.index];
+        let selected = state.children[state.index];
+        while (selected.hasOwnProperty("children")) {
+            selected = selected.children[selected.index]
+        }
+        const Component = state.navBar || selected.navBar || NavBar;
+        return <Component {...props} getTitle={state => state.title}/>
     }
 
     _renderCard(/*NavigationSceneRendererProps*/ props) {
+        const { key, direction, panHandlers, getSceneStyle } = props.scene.navigationState;
+
+        const optionals = {};
+        if (getSceneStyle) optionals.style = getSceneStyle(props);
+
         return (
             <NavigationCard
                 {...props}
-                style={props.scene.navigationState.style}
-                key={"card_" + props.scene.navigationState.key}
-                direction={props.scene.navigationState.direction || "horizontal"}
-                panHandlers={props.scene.navigationState.panHandlers }
+                key={'card_' + key}
+                direction={direction || 'horizontal'}
+                panHandlers={panHandlers}
                 renderScene={this._renderScene}
+                {...optionals}
             />
         );
     }
@@ -108,4 +143,3 @@ const styles = StyleSheet.create({
         backgroundColor:"transparent"
     },
 });
-
