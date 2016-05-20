@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree.
  *
  */
-import assert from 'assert';
+import { assert } from './Util';
 
 function getStateFromScenes(route, scenes, props) {
   const getters = [];
@@ -42,7 +42,7 @@ export function getInitialState(
     return {
       ...scenes.rootProps,
       ...route,
-      key: `position_${route.sceneKey}`,
+      key: `${position}_${route.sceneKey}`,
       ...parentProps,
       ...getStateFromScenes(route, scenes, props),
     };

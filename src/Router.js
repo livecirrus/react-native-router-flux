@@ -8,8 +8,10 @@
  */
 import React, {
   Component,
-  NavigationExperimental,
   PropTypes,
+} from 'react';
+import {
+  NavigationExperimental,
 } from 'react-native';
 
 import Actions from './Actions';
@@ -51,7 +53,7 @@ class Router extends Component {
     } else {
       let scenes = props.children;
 
-      if (Array.isArray(props.children)) {
+      if (Array.isArray(props.children) || props.children.props.component) {
         scenes = (
           <Scene
             key="__root"
@@ -92,7 +94,7 @@ class Router extends Component {
       return onNavigate(props);
     };
 
-    return <DefaultRenderer navigationState={navigationState} />;
+    return <DefaultRenderer onNavigate={onNavigate} navigationState={navigationState} />;
   }
 
   render() {

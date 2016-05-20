@@ -25,6 +25,8 @@
  */
 import React, {
   PropTypes,
+} from 'react';
+import {
   Platform,
   Animated,
   Image,
@@ -113,13 +115,14 @@ const styles = StyleSheet.create({
 const propTypes = {
   navigationState: PropTypes.object,
   backButtonImage: PropTypes.number,
-  backButtonTextStyle: PropTypes.string,
-  leftButtonStyle: PropTypes.string,
-  leftButtonIconStyle: PropTypes.string,
+  backButtonTextStyle: Text.propTypes.style,
+  leftButtonStyle: View.propTypes.style,
+  leftButtonIconStyle: Image.propTypes.style,
   getTitle: PropTypes.func,
-  titleStyle: PropTypes.object,
+  titleStyle: Text.propTypes.style,
   position: PropTypes.object,
-  navigationBarStyle: PropTypes.object,
+  navigationBarStyle: View.propTypes.style,
+  renderTitle: PropTypes.any,
 };
 
 const contextTypes = {
@@ -368,7 +371,8 @@ class NavBar extends React.Component {
       selected.component.renderBackButton ||
       this.renderBackButton;
     const renderTitle = selected.renderTitle ||
-      selected.component.renderTitle;
+      selected.component.renderTitle ||
+      this.props.renderTitle;
     return (
       <Animated.View
         style={[
