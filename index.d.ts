@@ -96,6 +96,10 @@ declare namespace RNRF {
      * Simple way to override the drawerImage in the navBar
      */
     drawerImage?: ReactNative.Image,
+    /**
+    * hides the drawer for this scene and any following scenes until explicitly reversed
+    */
+    open?: boolean,
 
     // Navigation Bar: Title
 
@@ -202,6 +206,8 @@ declare namespace RNRF {
      * optional wrappert
      */
     wrapBy?: ()=>any,
+      
+    panHandlers?: null | (()=>any)
   }
 
   /**
@@ -269,7 +275,8 @@ declare namespace RNRF {
     jump(props: props): void,
     refresh(props: props): void,
     focus(props: props): void,
-    create(scene: React.ReactNode, wrapBy?: () => any): Object
+    create(scene: React.ReactNode, wrapBy?: () => any): Object,
+    [sceneKey: string]: (props?: props) => void
   }
 
   export var Actions: RNRFActions;
@@ -282,6 +289,7 @@ declare namespace RNRF {
     REPLACE: string,
     BACK: string,
     BACK_ACTION: string,
+    POP_AND_REPLACE: string,
     POP_TO: string,
     REFRESH: string,
     RESET: string,
